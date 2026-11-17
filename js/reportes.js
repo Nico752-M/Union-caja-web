@@ -3,7 +3,7 @@ async function render(){
  const tI=sum(ing),tG=sum(gas),tC=sum(gas.filter(x=>(x.p||'Café')==='Café')),ent=rs.reduce((t,x)=>t+x.e,0),an=[];
  for(let k=1;k<=12;k++){const mm=y+'-'+String(k).padStart(2,'0'),a=sum(inMes(I,mm)),b=sum(inMes(G,mm));an.push([mesTxt(mm).split(' ')[0],a,b,a-b])}
  const T=(h,rows)=>`<table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows}</table>`;
- $('#c').innerHTML=`<div class="bt"><button class="p" id="pdf">Descargar PDF</button><button class="g" id="xl">Descargar Excel</button><button class="g" id="bk">Copia de seguridad</button><label class="g">Restaurar copia<input type="file" id="rs" accept=".json" hidden></label></div>
+ $('#c').innerHTML=`<div class="bt"><button class="p" id="pdf">Descargar PDF</button><button class="g" id="xl">Descargar Excel</button></div>
  <p class="mu noprint">En el PDF se abre la ventana de impresión: elige «Guardar como PDF» como destino.</p>
  <h2 style="font:600 24px var(--serif);margin:0 0 14px">Café Real · Reporte de ${mesTxt(m)}</h2>
  <section class="sec"><h2>Auditorio</h2><p>Alquiler del salón y gastos pagados con esa plata.</p>
@@ -15,7 +15,5 @@ async function render(){
  <section class="sec noprint"><h2>Auditorio mes a mes en ${y}</h2>${T(['Mes','Ingresos','Gastos','Saldo'],an.map(r=>`<tr><td>${r[0]}</td><td class="n">${cop(r[1])}</td><td class="n">${cop(r[2])}</td><td class="n ${r[3]>=0?'ok':'ng'}">${cop(r[3])}</td></tr>`).join('')+`<tr><td><b>Total</b></td><td class="n">${cop(an.reduce((t,r)=>t+r[1],0))}</td><td class="n">${cop(an.reduce((t,r)=>t+r[2],0))}</td><td class="n">${cop(an.reduce((t,r)=>t+r[3],0))}</td></tr>`)}</section>`;
  $('#pdf').onclick=()=>print();
  $('#xl').onclick=()=>xlsx('Reporte-'+m,{Resumen:[['Café Real',mesTxt(m)],[],['Auditorio'],['Ingresos',tI],['Gastos',tG],['Saldo',tI-tG],['Gastos para el café',tC],[],['Café (Caja)'],['Ventas',caf.ventas],['Egresos de caja',caf.egresos],['Neto',caf.ventas-caf.egresos],['Productos vendidos',caf.productos],[],['Reservas'],['Eventos',rs.length],['Entradas',ent]],Ingresos:[['Fecha','Descripción','Valor'],...ing.map(x=>[x.f,x.d||'',x.v])],Gastos:[['Fecha','Categoría','Para','Descripción','Valor'],...gas.map(x=>[x.f,x.c,x.p||'Café',x.d||'',x.v])],Café:[['Fecha','Ventas','Egresos'],...caf.dias.map(d=>[d.f,d.v,d.e])],Reservas:[['Fecha','Evento','Entradas','Estado'],...rs.map(x=>[x.f,x.n,x.e,x.s])],['Año '+y]:[['Mes','Ingresos','Gastos','Saldo'],...an]});
- $('#bk').onclick=()=>{bajar('copia-cafe-real-'+hoy()+'.json',JSON.stringify(DATA.respaldo()),'application/json');toast('Copia descargada')};
- $('#rs').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.ing)||!Array.isArray(o.gas))throw 0;if(confirm('Esto reemplaza los ingresos y gastos actuales. ¿Continuar?')){DATA.restaurar(o);toast('Copia restaurada');render()}}catch{alert('Ese archivo no es una copia válida.')}};r.readAsText(f)};
 }
 if(shell('reportes','Reportes'))render();

@@ -38,23 +38,20 @@ async function oAll(base,tabla,m,col){
  setTimeout(()=>delete _c[k],60000);return _c[k]=out}
 
 /* ===== CAPA DE DATOS =====
-   Hoy: auditorio se guarda en este navegador (localStorage).
-   Después: cada función llama a la base (ORDS) en vez de st.get/st.set. */
-const M0=hoy().slice(0,7);
-if(!st.get('cr_ing')){
- st.set('cr_ing',[{id:1,f:M0+'-03',v:1000000,d:'Evento corporativo'},{id:2,f:M0+'-05',v:800000,d:'Taller de emprendimiento'},{id:3,f:M0+'-12',v:1200000,d:'Cumpleaños de 15 años'}]);
- st.set('cr_gas',[{id:4,f:M0+'-04',v:900000,c:'Nómina',p:'Café',d:'Pago de empleadas'},{id:5,f:M0+'-08',v:310000,c:'Energía',p:'Café',d:'Factura del mes anterior'},{id:6,f:M0+'-10',v:85000,c:'Mantenimiento',p:'Auditorio',d:'Aseo del salón'}]);
-}
-const up=(k,o)=>{const a=st.get(k,[]);if(o.id)st.set(k,a.map(x=>x.id===o.id?o:x));else{o.id=Date.now();st.set(k,[...a,o])}};
+   Todo viene de Oracle por ORDS: auditorio (esquema ADMIN), café (DEV_USUARIO) y reservas (ADMIN). */
+const AUD=JORGE; // tablas del auditorio: esquema ADMIN
+const iso=f=>f+'T00:00:00Z';
+const limpia=()=>Object.keys(_c).forEach(k=>delete _c[k]);
+async function jr(t,m,o,id){const r=await fetch(AUD+t+'/'+(id??''),{method:m,headers:{Accept:'application/json','Content-Type':'application/json'},body:o?JSON.stringify(o):undefined});if(!r.ok)throw new Error(t+' '+r.status);limpia()}
+const rIng=x=>({id:x.id,f:dia(x.fecha),v:+x.valor,d:x.descripcion||''});
+const rGas=x=>({...rIng(x),c:x.categoria,p:x.para});
 const DATA={
- ingresos:async()=>st.get('cr_ing',[]),
- gastos:async()=>st.get('cr_gas',[]),
- saveIngreso:async o=>up('cr_ing',o),
- saveGasto:async o=>up('cr_gas',o),
- delIngreso:async id=>st.set('cr_ing',st.get('cr_ing',[]).filter(x=>x.id!==id)),
- delGasto:async id=>st.set('cr_gas',st.get('cr_gas',[]).filter(x=>x.id!==id)),
- respaldo:()=>({ing:st.get('cr_ing',[]),gas:st.get('cr_gas',[])}),
- restaurar:o=>{st.set('cr_ing',o.ing||[]);st.set('cr_gas',o.gas||[])},
+ ingresos:async()=>(await oAll(AUD,'auditorio_ingresos')).map(rIng),
+ gastos:async()=>(await oAll(AUD,'auditorio_gastos')).map(rGas),
+ saveIngreso:async o=>jr('auditorio_ingresos',o.id?'PUT':'POST',{fecha:iso(o.f),valor:o.v,descripcion:o.d},o.id),
+ saveGasto:async o=>jr('auditorio_gastos',o.id?'PUT':'POST',{fecha:iso(o.f),valor:o.v,categoria:o.c,para:o.p,descripcion:o.d},o.id),
+ delIngreso:async id=>jr('auditorio_ingresos','DELETE',null,id),
+ delGasto:async id=>jr('auditorio_gastos','DELETE',null,id),
  /* SOLO LECTURA: Caja Café (esquema DEV_USUARIO) */
  async cafe(m){
   const V=await oAll(CAFE,'ventas',m,'fecha'),M=await oAll(CAFE,'movimientos_caja',m,'fecha');
