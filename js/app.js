@@ -42,7 +42,7 @@ async function oAll(base,tabla,m,col){
 const AUD=JORGE; // tablas del auditorio: esquema ADMIN
 const iso=f=>f+'T00:00:00Z';
 const limpia=()=>Object.keys(_c).forEach(k=>delete _c[k]);
-async function jr(t,m,o,id){const r=await fetch(AUD+t+'/'+(id??''),{method:m,headers:{Accept:'application/json','Content-Type':'application/json'},body:o?JSON.stringify(o):undefined});if(!r.ok)throw new Error(t+' '+r.status);limpia()}
+async function jr(t,m,o,id){const h={Accept:'application/json'};if(o)h['Content-Type']='application/json';const r=await fetch(AUD+t+'/'+(id??''),{method:m,headers:h,body:o?JSON.stringify(o):undefined});if(!r.ok){let x='';try{x=(await r.text()).slice(0,200)}catch{}throw new Error(t+' '+r.status+' '+x)}limpia()}
 const rIng=x=>({id:x.id,f:dia(x.fecha),v:+x.valor,d:x.descripcion||''});
 const rGas=x=>({...rIng(x),c:x.categoria,p:x.para});
 const DATA={
