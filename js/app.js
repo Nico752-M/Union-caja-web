@@ -24,6 +24,19 @@ async function xlsx(nombre,hojas){
  catch{alert('No se pudo preparar el Excel. Revisa la conexión a internet e intenta de nuevo.')}
 }
 
+/* ===== CONEXIÓN ORDS (solo lectura). Misma base, un esquema por app ===== */
+const HOST='https://g473fddcae420b1-cafereal.adb.sa-bogota-1.oraclecloudapps.com/ords/';
+const CAFE=HOST+'dev_usuario/',JORGE=HOST+'admin/'; // si el alias de ADMIN es otro, cámbialo aquí
+const dia=f=>String(f||'').slice(0,10),sum2=(a,k)=>a.reduce((t,x)=>t+(+x[k]||0),0);
+const _c={};
+async function oAll(base,tabla,m,col){
+ const k=base+tabla+(m||'');if(_c[k])return _c[k];
+ const q=m&&col?'&q='+encodeURIComponent(JSON.stringify({[col]:{$gte:{$date:m+'-01T00:00:00Z'},$lt:{$date:new Date(+m.slice(0,4),+m.slice(5)-0,1).toISOString().slice(0,10)+'T00:00:00Z'}}})):'';
+ let out=[],off=0;
+ for(;;){const r=await fetch(`${base}${tabla}/?limit=500&offset=${off}${q}`,{headers:{Accept:'application/json'}});
+  if(!r.ok)throw new Error(tabla+' '+r.status);const d=await r.json();out=out.concat(d.items||[]);if(!d.hasMore)break;off+=500}
+ setTimeout(()=>delete _c[k],60000);return _c[k]=out}
+
 /* ===== CAPA DE DATOS =====
    Hoy: auditorio se guarda en este navegador (localStorage).
    Después: cada función llama a la base (ORDS) en vez de st.get/st.set. */
@@ -42,10 +55,19 @@ const DATA={
  delGasto:async id=>st.set('cr_gas',st.get('cr_gas',[]).filter(x=>x.id!==id)),
  respaldo:()=>({ing:st.get('cr_ing',[]),gas:st.get('cr_gas',[])}),
  restaurar:o=>{st.set('cr_ing',o.ing||[]);st.set('cr_gas',o.gas||[])},
- /* SOLO LECTURA, de la app Caja */
- async cafe(m){return{ventas:6420000,egresos:1150000,productos:412,dias:[{f:m+'-12',v:540000,e:60000},{f:m+'-13',v:610000,e:45000},{f:m+'-14',v:720000,e:80000}]}},
- /* SOLO LECTURA, del panel de reservas */
- async reservas(m){return[{f:m+'-03',n:'Evento corporativo',e:80,s:'Realizado'},{f:m+'-12',n:'Cumpleaños de 15 años',e:120,s:'Realizado'},{f:m+'-22',n:'Concierto acústico',e:150,s:'Próximo'}]}
+ /* SOLO LECTURA: Caja Café (esquema DEV_USUARIO) */
+ async cafe(m){
+  const V=await oAll(CAFE,'ventas',m,'fecha'),M=await oAll(CAFE,'movimientos_caja',m,'fecha');
+  const vp=V.filter(x=>x.estado==='pagada'&&dia(x.fecha).startsWith(m)),ids=new Set(vp.map(x=>x.id));
+  const IT=ids.size?(await oAll(CAFE,'venta_items')).filter(x=>ids.has(x.venta_id)):[];
+  const mm=M.filter(x=>dia(x.fecha).startsWith(m)),map={};
+  vp.forEach(x=>{const d=dia(x.fecha);(map[d]=map[d]||{f:d,v:0,e:0}).v+=+x.total||0});
+  mm.filter(x=>x.tipo==='egreso').forEach(x=>{const d=dia(x.fecha);(map[d]=map[d]||{f:d,v:0,e:0}).e+=+x.monto||0});
+  return{ventas:sum2(vp,'total'),egresos:sum2(mm.filter(x=>x.tipo==='egreso'),'monto'),productos:sum2(IT,'cantidad'),dias:Object.values(map).sort(byF)}},
+ /* SOLO LECTURA: Jorge Web (esquema ADMIN) */
+ async reservas(m){
+  const E=(await oAll(JORGE,'eventos')).filter(x=>dia(x.fecha_inicio).startsWith(m)&&x.estado!=='CANCELADO'),R=await oAll(JORGE,'reservas_cupos'),ahora=new Date().toISOString();
+  return E.map(x=>({f:dia(x.fecha_inicio),n:x.titulo,e:R.filter(r=>r.evento_id===x.id&&r.estado==='CONFIRMADA').reduce((t,r)=>t+(+r.num_personas||0),0),s:x.fecha_inicio<ahora?'Realizado':'Próximo'})).sort(byF)}
 };
 
 /* Ventanita para anotar o editar un ingreso (t='i') o un gasto (t='g') */
