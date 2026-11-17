@@ -41,6 +41,8 @@ async function oAll(base,tabla,m,col){
    Todo viene de Oracle por ORDS: auditorio (esquema ADMIN), café (DEV_USUARIO) y reservas (ADMIN). */
 const AUD=JORGE; // tablas del auditorio: esquema ADMIN
 const iso=f=>f+'T00:00:00Z';
+const nomItem=x=>x.producto_nombre||x.nombre_producto||x.nombre||x.producto||x.descripcion||'';
+const prods=it=>{const o={};it.forEach(x=>{const r=o[x.n]=o[x.n]||{n:x.n,u:0,t:0};r.u+=x.u;r.t+=x.t});return Object.values(o).sort((a,b)=>b.u-a.u)};
 const limpia=()=>Object.keys(_c).forEach(k=>delete _c[k]);
 async function jr(t,m,o,id){const h={Accept:'application/json'};if(o)h['Content-Type']='application/json';const r=await fetch(AUD+t+'/'+(id??''),{method:m,headers:h,body:o?JSON.stringify(o):undefined});if(!r.ok){let x='';try{x=(await r.text()).slice(0,200)}catch{}throw new Error(t+' '+r.status+' '+x)}limpia()}
 const rIng=x=>({id:x.id,f:dia(x.fecha),v:+x.valor,d:x.descripcion||''});
@@ -60,7 +62,10 @@ const DATA={
   const mm=M.filter(x=>dia(x.fecha).startsWith(m)),map={};
   vp.forEach(x=>{const d=dia(x.fecha);(map[d]=map[d]||{f:d,v:0,e:0}).v+=+x.total||0});
   mm.filter(x=>x.tipo==='egreso').forEach(x=>{const d=dia(x.fecha);(map[d]=map[d]||{f:d,v:0,e:0}).e+=+x.monto||0});
-  return{ventas:sum2(vp,'total'),egresos:sum2(mm.filter(x=>x.tipo==='egreso'),'monto'),productos:sum2(IT,'cantidad'),dias:Object.values(map).sort(byF)}},
+  const PN={};if(IT.some(x=>!nomItem(x))){try{(await oAll(CAFE,'productos')).forEach(p=>PN[p.id]=p.nombre||p.name||'')}catch{}}
+  const vf={};vp.forEach(x=>vf[x.id]=dia(x.fecha));
+  const items=IT.map(x=>({f:vf[x.venta_id],n:nomItem(x)||PN[x.producto_id]||('Producto '+(x.producto_id??'?')),u:+x.cantidad||0,t:+(x.subtotal??x.total??(+(x.precio_unitario??x.precio)||0)*(+x.cantidad||0))||0}));
+  return{ventas:sum2(vp,'total'),egresos:sum2(mm.filter(x=>x.tipo==='egreso'),'monto'),productos:sum2(IT,'cantidad'),items,dias:Object.values(map).sort(byF)}},
  /* SOLO LECTURA: Jorge Web (esquema ADMIN) */
  async reservas(m){
   const E=(await oAll(JORGE,'eventos')).filter(x=>dia(x.fecha_inicio).startsWith(m)&&x.estado!=='CANCELADO'),R=await oAll(JORGE,'reservas_cupos'),ahora=new Date().toISOString();
