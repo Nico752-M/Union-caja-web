@@ -100,16 +100,18 @@ function abrirMov(t,o={}){
 }
 
 function cambiaMes(n){const[y,m]=mes().split('-').map(Number),d=new Date(y,m-1+n,1);localStorage.setItem('cr_mes',d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));$('#mt').textContent=mesTxt(mes());render()}
+const IC=(()=>{const f=d=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+ return{inicio:f('<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'),auditorio:f('<path d="M4 20h16M6 20V10M10 20V10M14 20V10M18 20V10M3 10l9-6 9 6z"/>'),cafe:f('<path d="M5 8h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5zM17 9h1.5a2.5 2.5 0 0 1 0 5H17M7 3v2M11 3v2M15 3v2"/>'),reservas:f('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'),reportes:f('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')}})();
 function shell(page,title){
  if(!sessionStorage.cr_user){location.replace('login.html');return false}
  const L=[['inicio','Inicio'],['auditorio','Auditorio'],['cafe','Café'],['reservas','Reservas'],['reportes','Reportes']];
  document.body.innerHTML=`<aside><div class="mk">Café Real<small>Centro de Negocios</small></div>
- ${L.map(([k,t])=>`<a href="${k}.html" class="${k===page?'on':''}">${t}</a>`).join('')}
+ ${L.map(([k,t])=>`<a href="${k}.html" class="${k===page?'on':''}">${IC[k]}<span>${t}</span></a>`).join('')}
  <button class="out" id="out">Cerrar sesión</button></aside>
- <div class="w"><header><div><h1>${title}</h1><p class="sb">${SUB[page]||''}</p></div>
+ <div class="w"><header><div class="ht"><div><h1>${title}</h1><p class="sb">${SUB[page]||''}</p></div><button class="g sal" id="out2">Salir</button></div>
  <div class="mn"><button id="mp" aria-label="Mes anterior">‹</button><b id="mt">${mesTxt(mes())}</b><button id="ms" aria-label="Mes siguiente">›</button><button class="g" id="mh">Este mes</button></div></header><main id="c"></main></div>`;
  $('#mp').onclick=()=>cambiaMes(-1);$('#ms').onclick=()=>cambiaMes(1);
  $('#mh').onclick=()=>{localStorage.removeItem('cr_mes');$('#mt').textContent=mesTxt(mes());render()};
- $('#out').onclick=()=>{sessionStorage.clear();location.replace('login.html')};
+ $('#out').onclick=$('#out2').onclick=()=>{sessionStorage.clear();location.replace('login.html')};
  return true;
 }
