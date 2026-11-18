@@ -1,3 +1,7 @@
+/* ===== PWA: ícono, color y service worker ===== */
+(()=>{const a=(t,o)=>document.head.appendChild(Object.assign(document.createElement(t),o));
+ a('link',{rel:'manifest',href:'manifest.json'});a('link',{rel:'apple-touch-icon',href:'icons/icon-180.png'});a('meta',{name:'theme-color',content:'#12303a'});
+ if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))})();
 /* ===== CONFIG: cambiar al conectar la base ===== */
 const CFG={users:{admin:'cafereal'}}; // Provisional. Se reemplaza por el login real.
 const CATS=['Nómina','Energía','Agua e internet','Arriendo','Mantenimiento','Otros'];
@@ -90,8 +94,8 @@ function abrirMov(t,o={}){
  if(o.id)$('#md',d).onclick=async()=>{if(confirm('¿Borrar este '+(g?'gasto':'ingreso')+'?')){try{if(g)await DATA.delGasto(o.id);else await DATA.delIngreso(o.id);d.close();toast('Borrado');render()}catch(err){alert('No se pudo borrar: '+(err&&err.message?err.message:err))}}};
  $('#mf',d).onsubmit=async e=>{e.preventDefault();const n=+v.value.replace(/\D/g,'');if(!n){v.focus();return}
   const b={id:o.id,f:$('#m1',d).value,v:n,d:$('#m5',d).value.trim()};
-  if(g)await DATA.saveGasto({...b,c:$('#m3',d).value,p:$('#m4',d).value});else await DATA.saveIngreso(b);
-  d.close();toast(g?'Gasto guardado':'Ingreso guardado');render()};
+  try{if(g)await DATA.saveGasto({...b,c:$('#m3',d).value,p:$('#m4',d).value});else await DATA.saveIngreso(b);
+  d.close();toast(g?'Gasto guardado':'Ingreso guardado');render()}catch(err){alert('No se pudo guardar: '+(err&&err.message?err.message:err))}};
  d.showModal();v.focus();
 }
 
